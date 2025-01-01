@@ -6,20 +6,35 @@ const MarkerComparison = require('./comparison');
 class DataHandler {
     constructor() {
         try {
-            const credentialsPath = path.join(__dirname, 'credentials', 'credentials.json');
-            if (!fs.existsSync(credentialsPath)) {
-                throw new Error('Google Sheets credentials file not found at: ' + credentialsPath);
+            // Check for credentials in environment first
+            if (process.env.GOOGLE_SHEETS_CREDENTIALS) {
+                try {
+                    const credentials = JSON.parse(process.env.GOOGLE_SHEETS_CREDENTIALS);
+                    this.auth = new google.auth.GoogleAuth({
+                        credentials: credentials,
+                        scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+                    });
+                } catch (parseError) {
+                    console.error('Error parsing credentials from environment:', parseError);
+                    throw new Error('Invalid credentials format in environment variable');
+                }
+            } else {
+                // Fallback to file for local development
+                const credentialsPath = path.join(__dirname, 'credentials', 'credentials.json');
+                if (!fs.existsSync(credentialsPath)) {
+                    throw new Error('No credentials found in environment or file');
+                }
+                this.auth = new google.auth.GoogleAuth({
+                    keyFile: credentialsPath,
+                    scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+                });
             }
 
-            this.auth = new google.auth.GoogleAuth({
-                keyFile: credentialsPath,
-                scopes: ['https://www.googleapis.com/auth/spreadsheets'],
-            });
             this.sheetsApi = google.sheets({ version: 'v4', auth: this.auth });
             this.spreadsheetId = '1WEpy6eVaUoNUYqJLKfe715eW1U_RWgDkZenomBtdCrY';
             
             console.log('Spreadsheet URL:', this.getDatabaseUrl());
-            console.log('Service account credentials path:', credentialsPath);
+            console.log('Using credentials from:', process.env.GOOGLE_SHEETS_CREDENTIALS ? 'environment' : 'file');
         } catch (error) {
             console.error('Error initializing DataHandler:', error);
             throw error;
