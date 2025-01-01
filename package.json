@@ -11,7 +11,11 @@
     "googleapis": "^126.0.1",
     "multer": "^1.4.5-lts.1",
     "docx": "^8.2.3",
-    "pizzip": "^3.1.6"
+    "pizzip": "^3.1.6",
+    "docxtemplater": "^3.42.4",
+    "fs-extra": "^11.2.0",
+    "path": "^0.12.7",
+    "angular-expressions": "^1.1.11"
   },
   "engines": {
     "node": ">=14.0.0"
