@@ -16,11 +16,13 @@ class DocGenerator {
 
     static async generateDocument(result) {
         try {
+            console.log('Generating document for:', result);
             const template = fs.readFileSync(
                 path.resolve(__dirname, 'templates', 'phap-ly-template.docx'),
                 'binary'
             );
 
+            console.log('Template loaded successfully');
             const zip = new PizZip(template);
             
             const doc = new Docxtemplater(zip, {
@@ -54,8 +56,8 @@ class DocGenerator {
                 percentage: showPercentage ? "99.99999999999999" : ""
             };
 
-            // Generate marker data for template
-            markerOrder.forEach((marker, index) => {
+            // Add marker values in the original format
+            markerOrder.forEach(marker => {
                 const values1 = result.sample1.markers[marker] || ['', ''];
                 const values2 = result.sample2.markers[marker] || ['', ''];
                 const safeMarker = marker.replace(/\s+/g, '_');
@@ -66,27 +68,35 @@ class DocGenerator {
                 data[`${safeMarker}_values2_1`] = values2[1] || '';
             });
 
-            // Debug logging
-            console.log('Template path:', path.resolve(__dirname, 'templates', 'phap-ly-template.docx'));
-            console.log('Data being sent to template:', JSON.stringify(data, null, 2));
-
-            // Render the document
+            console.log('Data prepared:', data);
             doc.render(data);
 
-            return doc.getZip().generate({
+            console.log('Document rendered successfully');
+            const buffer = doc.getZip().generate({
                 type: 'nodebuffer',
                 compression: 'DEFLATE'
             });
 
-        } catch (error) {
-            console.error('Original error:', error);
-            if (error.properties && error.properties.errors) {
-                const errorMessages = error.properties.errors
-                    .map(e => `Error in ${e.properties?.file || 'template'}: ${e.properties?.explanation || e.message}`)
-                    .join('\n');
-                console.error('Template Error Details:', errorMessages);
-                throw new Error(`Template processing failed: ${errorMessages}`);
+            // Format filename
+            let filename;
+            if (result.sample1.code.endsWith('A')) {
+                filename = `${result.sample1.code} ${result.sample1.name}_${result.sample2.name}`;
+            } else if (result.sample2.code.endsWith('A')) {
+                filename = `${result.sample2.code} ${result.sample2.name}_${result.sample1.name}`;
+            } else {
+                filename = `${result.sample1.code} ${result.sample1.name}_${result.sample2.name}`;
             }
+            filename = filename.replace(/[/\\?%*:|"<>]/g, '-');
+            filename = `${filename}.docx`;
+
+            return {
+                buffer,
+                filename
+            };
+
+        } catch (error) {
+            console.error('Document generation error:', error);
+            console.error('Error stack:', error.stack);
             throw error;
         }
     }
@@ -126,6 +136,17 @@ class DocGenerator {
             console.error('Error generating document:', error);
             alert('Error generating document: ' + error.message);
         }
+    }
+
+    static generateConclusion(result) {
+        const hasMismatchesExcludingYindel = result.mismatches.some(marker => marker !== 'Yindel');
+        return `Kết luận: ${
+            result.conclusion === "Blood Relation" ? "CÓ" : "KHÔNG"
+        }${result.conclusion === "Blood Relation" ? "" : " có"} quan hệ huyết thống Cha/Mẹ - Con${
+            !hasMismatchesExcludingYindel && result.conclusion === "Blood Relation" 
+            ? ", với tần suất 99.99999999999999%" 
+            : ""
+        }.`;
     }
 }
 

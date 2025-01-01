@@ -1,3 +1,5 @@
+const { DataHandler } = require('../trial-app/marker-comparison/data');
+
 class MarkerComparison {
     static get MARKER_ORDER() {
         return [

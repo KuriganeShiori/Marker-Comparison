@@ -1,23 +1,41 @@
 const { google } = require('googleapis');
 const fs = require('fs');
 const path = require('path');
+const MarkerComparison = require('../trial-app/marker-comparison/comparison');
 
 class DataHandler {
     constructor() {
         try {
-            this.electron = require('@electron/remote');
+            const credentialsPath = path.join(__dirname, '..', '..', 'credentials.json');
+            if (!fs.existsSync(credentialsPath)) {
+                throw new Error('Google Sheets credentials file not found at: ' + credentialsPath);
+            }
+
             this.auth = new google.auth.GoogleAuth({
-                keyFile: path.join(__dirname, 'credentials', 'credentials.json'),
+                keyFile: credentialsPath,
                 scopes: ['https://www.googleapis.com/auth/spreadsheets'],
             });
             this.sheetsApi = google.sheets({ version: 'v4', auth: this.auth });
             this.spreadsheetId = '1WEpy6eVaUoNUYqJLKfe715eW1U_RWgDkZenomBtdCrY';
-            this.replaceAll = false;
             
             console.log('Spreadsheet URL:', this.getDatabaseUrl());
-            console.log('Service account credentials path:', path.join(__dirname, 'credentials', 'credentials.json'));
+            console.log('Service account credentials path:', credentialsPath);
         } catch (error) {
             console.error('Error initializing DataHandler:', error);
+            throw error;
+        }
+    }
+
+    async initialize() {
+        try {
+            // Test the connection by getting spreadsheet info
+            const response = await this.sheetsApi.spreadsheets.get({
+                spreadsheetId: this.spreadsheetId
+            });
+            console.log('Successfully connected to spreadsheet:', response.data.properties.title);
+            return true;
+        } catch (error) {
+            console.error('Failed to initialize Google Sheets connection:', error);
             throw error;
         }
     }
@@ -82,15 +100,14 @@ class DataHandler {
 
     async checkSpreadsheet() {
         try {
+            console.log('Checking spreadsheet connection...');
             const response = await this.sheetsApi.spreadsheets.get({
                 spreadsheetId: this.spreadsheetId
             });
-            console.log('Successfully connected to spreadsheet:');
-            console.log('Title:', response.data.properties.title);
-            console.log('URL:', `https://docs.google.com/spreadsheets/d/${this.spreadsheetId}/edit`);
+            console.log('Successfully connected to spreadsheet:', response.data.properties.title);
             return true;
         } catch (error) {
-            console.error('Error accessing spreadsheet:', error.message);
+            console.error('Spreadsheet connection error:', error);
             return false;
         }
     }
@@ -282,7 +299,7 @@ class DataHandler {
     }
 
     parseTxtFile(content) {
-        // New implementation matching note.js format
+        // New implementation matching the actual format
         const sampleData = {
             markers: {},
             code: '',
@@ -522,6 +539,175 @@ class DataHandler {
             return allCases;
         } catch (error) {
             console.error('Error getting all cases:', error);
+            throw error;
+        }
+    }
+
+    async uploadCasesData(dateFolder, casesData) {
+        try {
+            const sheetName = await this.findOrCreateSheet(dateFolder);
+            console.log('Using sheet:', sheetName);
+
+            // Sort case folders first
+            const sortedFolders = Object.keys(casesData).sort((a, b) => {
+                // Extract the base codes (first 5 characters)
+                const codeA = a.slice(0, 5);
+                const codeB = b.slice(0, 5);
+                
+                // Extract parts: letter (V/T), year (24), and number (45)
+                const letterA = codeA[0];
+                const letterB = codeB[0];
+                const yearA = codeA.slice(1, 3);
+                const yearB = codeB.slice(1, 3);
+                const numberA = codeA.slice(3, 5);
+                const numberB = codeB.slice(3, 5);
+
+                // Compare letter first
+                if (letterA !== letterB) {
+                    return letterA.localeCompare(letterB);
+                }
+                // Then compare year
+                if (yearA !== yearB) {
+                    return yearA.localeCompare(yearB);
+                }
+                // Finally compare number
+                return numberA.localeCompare(numberB);
+            });
+
+            // First, organize the data by case code
+            const caseGroups = {};
+            for (const caseFolder of sortedFolders) {
+                const samples = casesData[caseFolder];
+                const baseCode = caseFolder.slice(0, 5);
+                if (!caseGroups[baseCode]) {
+                    caseGroups[baseCode] = [];
+                }
+                caseGroups[baseCode].push(...samples);
+            }
+
+            console.log('Processing cases in order:', Object.keys(caseGroups));
+
+            for (const baseCode of Object.keys(caseGroups)) {
+                const samples = caseGroups[baseCode];
+                console.log(`Processing case ${baseCode} with ${samples.length} samples`);
+
+                // Clear any existing data for this case
+                const existingRow = await this.findExistingCase(baseCode, sheetName);
+                if (existingRow) {
+                    console.log(`Deleting existing case at row ${existingRow}`);
+                    await this.deleteRows(existingRow, 28, sheetName);
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+
+                // Sort all samples for this case
+                samples.sort((a, b) => {
+                    const suffixA = a.code.slice(-1);
+                    const suffixB = b.code.slice(-1);
+                    return suffixA.localeCompare(suffixB);
+                });
+
+                const values = [];
+                const numSamples = samples.length;
+
+                // Add marker header row
+                const markerHeaderRow = [];
+                samples.forEach((_, index) => {
+                    markerHeaderRow.push('Marker', 'Allele 1', 'Allele 2');
+                });
+                values.push(markerHeaderRow);
+
+                // Add sample codes and names row
+                const headerRow = [];
+                samples.forEach(sample => {
+                    headerRow.push(`${sample.code} ${sample.name}`, '', '');
+                });
+                values.unshift(headerRow);  // Add at the beginning
+
+                // Add marker data rows
+                MarkerComparison.MARKER_ORDER.forEach(marker => {
+                    const row = [];
+                    samples.forEach((sample, index) => {
+                        const values = sample.markers[marker] || ['', ''];
+                        const formattedValues = values.map(v => {
+                            const num = parseFloat(v);
+                            return !isNaN(num) ? `'${v}` : v;
+                        });
+                        row.push(marker, formattedValues[0] || '', formattedValues[1] || '');
+                    });
+                    values.push(row);
+                });
+
+                // Add empty rows between cases
+                values.push(Array(numSamples * 3).fill(''));
+                values.push(Array(numSamples * 3).fill(''));
+
+                try {
+                    await this.sheetsApi.spreadsheets.values.append({
+                        spreadsheetId: this.spreadsheetId,
+                        range: `${sheetName}!A1`,
+                        valueInputOption: 'USER_ENTERED',
+                        insertDataOption: 'INSERT_ROWS',
+                        resource: {
+                            values,
+                            majorDimension: 'ROWS'
+                        }
+                    });
+                    console.log(`Successfully uploaded case ${baseCode}`);
+                } catch (uploadError) {
+                    console.error('Upload error:', uploadError);
+                    throw uploadError;
+                }
+
+                await new Promise(resolve => setTimeout(resolve, 2000));
+            }
+
+            return true;
+        } catch (error) {
+            console.error('Error uploading cases data:', error);
+            throw error;
+        }
+    }
+
+    formatCaseDataForUpload(samples) {
+        try {
+            if (!Array.isArray(samples) || samples.length !== 2) {
+                throw new Error(`Invalid samples array: expected 2 samples, got ${samples?.length}`);
+            }
+
+            const values = [];
+            const markerOrder = MarkerComparison.MARKER_ORDER;
+
+            // First row: Sample names with codes
+            values.push([
+                `${samples[0].code} ${samples[0].name}`, '', '',
+                `${samples[1].code} ${samples[1].name}`, '', ''
+            ]);
+
+            // Second row: Marker headers
+            values.push(['Marker', 'Allele 1', 'Allele 2', 'Marker', 'Allele 1', 'Allele 2']);
+
+            // Add marker data rows
+            markerOrder.forEach(marker => {
+                const sample1Values = samples[0].markers[marker] || ['', ''];
+                const sample2Values = samples[1].markers[marker] || ['', ''];
+                const row = [
+                    marker,
+                    sample1Values[0] || '',
+                    sample1Values[1] || '',
+                    marker,
+                    sample2Values[0] || '',
+                    sample2Values[1] || ''
+                ];
+                values.push(row);
+            });
+
+            // Add empty rows for spacing
+            values.push(Array(6).fill(''));
+            values.push(Array(6).fill(''));
+
+            return values;
+        } catch (error) {
+            console.error('Error formatting case data:', error);
             throw error;
         }
     }
