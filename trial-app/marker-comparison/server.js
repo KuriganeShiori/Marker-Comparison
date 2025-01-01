@@ -2,9 +2,9 @@ const express = require('express');
 const path = require('path');
 const multer = require('multer');
 const fs = require('fs').promises;
-const { DataHandler } = require('../trial-app/marker-comparison/data');
-const MarkerComparison = require('../trial-app/marker-comparison/comparison');
-const { DocGenerator } = require('../trial-app/marker-comparison/docGenerator');
+const { DataHandler } = require('./data');
+const MarkerComparison = require('./comparison');
+const { DocGenerator } = require('./docGenerator');
 const app = express();
 
 // Configure multer for file upload

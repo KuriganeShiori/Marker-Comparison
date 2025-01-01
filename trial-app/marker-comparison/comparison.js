@@ -1,4 +1,4 @@
-const { DataHandler } = require('../trial-app/marker-comparison/data');
+const { DataHandler } = require('./data');
 
 class MarkerComparison {
     static get MARKER_ORDER() {
