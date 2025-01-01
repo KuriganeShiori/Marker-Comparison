@@ -1,0 +1,6 @@
+# Add these lines
+node_modules/
+credentials/
+credentials.json
+.env
+.DS_Store 

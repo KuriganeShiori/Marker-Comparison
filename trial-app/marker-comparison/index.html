@@ -1,0 +1,1164 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Marker Comparison</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            margin: 0;
+            display: flex;
+            min-height: 100vh;
+        }
+        .main-container {
+            display: flex;
+            width: 100%;
+            margin-top: 0;
+        }
+        .input-section {
+            flex: 0 0 400px;
+            padding: 20px;
+            border-right: 1px solid #ccc;
+        }
+        .results-section {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        .comparison-type {
+            width: 100%;
+        }
+        .input-group {
+            margin: 10px 0;
+        }
+        .result-container {
+            margin-bottom: 10px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .result-container h3 {
+            margin: 0 0 10px 0;
+        }
+        .summary p {
+            margin: 2px 0;
+        }
+        .result-buttons {
+            margin-top: 10px;
+            display: flex;
+            gap: 10px;
+        }
+        .result-buttons button {
+            padding: 8px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .result-buttons button:hover {
+            background-color: #45a049;
+        }
+        .popup {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 30px;
+            border: 1px solid #ccc;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+            max-width: 90%;
+            max-height: 90%;
+            overflow: auto;
+            z-index: 1000;
+            position: relative;
+        }
+        .popup table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+        }
+        .popup th, .popup td {
+            padding: 8px;
+            border: 1px solid #000;
+            text-align: center;
+        }
+        .popup th {
+            background-color: #f5f5f5;
+        }
+        .marker-name {
+            text-align: left;
+            font-weight: bold;
+        }
+        .highlight {
+            background-color: rgba(144, 238, 144, 0.3); /* Light green with transparency */
+        }
+        .mismatch {
+            background-color: white;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        input[type="text"] {
+            padding: 5px;
+            width: 200px;
+        }
+        button {
+            padding: 8px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #results {
+            margin-top: 20px;
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+        .popup {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border: 1px solid #ccc;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+            max-width: 80%;
+            max-height: 80%;
+            overflow: auto;
+            z-index: 1000;
+        }
+
+        .popup-backdrop {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+        }
+
+        .highlight {
+            background-color: yellow;
+        }
+
+        .result-buttons {
+            margin: 10px 0;
+        }
+
+        @media print {
+            .no-print {
+                display: none;
+            }
+        }
+
+        .header-table {
+            margin-bottom: 20px;
+        }
+
+        .marker-table {
+            margin-top: 10px;
+        }
+
+        .sample-info {
+            margin-bottom: 20px;
+        }
+
+        .close-button {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            background: none;
+            border: none;
+            color: #666;
+            padding: 5px 10px;
+        }
+
+        .close-button:hover {
+            color: #000;
+        }
+
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .comparison-table th,
+        .comparison-table td {
+            border: 1px solid #000;
+            padding: 8px;
+            text-align: center;
+        }
+
+        .comparison-table th {
+            background-color: #f5f5f5;
+        }
+
+        .marker-name {
+            text-align: left;
+            font-weight: bold;
+        }
+
+        .highlight {
+            background-color: #E6E6FA; /* Light purple */
+        }
+
+        .sample-header {
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .sample-code {
+            font-size: 0.9em;
+            display: block;
+        }
+
+        .button-container {
+            text-align: center;
+            margin-top: 20px;
+            padding: 10px;
+        }
+
+        .close-btn {
+            padding: 8px 20px;
+            font-size: 14px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 0 5px;
+        }
+
+        .close-btn:hover {
+            background-color: #45a049;
+        }
+
+        .popup {
+            padding-bottom: 20px; /* Add some padding at the bottom for the close button */
+        }
+
+        .special-case {
+            border: 2px solid #ff4444;
+            background-color: #fff8f8;
+        }
+
+        .warning-message {
+            color: #ff4444;
+            font-weight: bold;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .result-container {
+            margin-bottom: 10px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        .summary p {
+            margin: 2px 0;
+        }
+
+        .result-buttons {
+            margin-top: 10px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .header-top {
+            display: flex;
+            align-items: center;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        .logo {
+            height: 40px;
+            margin-right: 20px;
+        }
+
+        .tool-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 5px;
+        }
+
+        .action-button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+            transition: background-color 0.3s;
+        }
+
+        .action-button:hover {
+            background-color: #45a049;
+        }
+
+        .action-button:active {
+            background-color: #3d8b40;
+        }
+
+        .action-button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+
+        .data-management {
+            width: 100%;
+        }
+
+        /* Add styles for the database buttons */
+        .database-buttons {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+            justify-content: flex-start; /* Align buttons to the left */
+        }
+
+        .database-button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            width: 150px; /* Set fixed width for the buttons */
+        }
+
+        .database-button:hover {
+            background-color: #45a049;
+        }
+
+        /* Fancy Button Styling */
+        .btn {
+            --border-color: linear-gradient(-45deg, #ffae00, #7e03aa, #00fffb);
+            --border-width: 0.125em;
+            --curve-size: 0.5em;
+            --blur: 30px;
+            --bg: #080312;
+            --color: #afffff;
+            color: var(--color);
+            cursor: pointer;
+            position: relative;
+            isolation: isolate;
+            display: inline-grid;
+            place-content: center;
+            padding: 0.5em 1.5em;
+            font-size: 17px;
+            border: 0;
+            text-transform: uppercase;
+            box-shadow: 10px 10px 20px rgba(0, 0, 0, 0.6);
+            clip-path: polygon(
+                0% var(--curve-size),
+                var(--curve-size) 0,
+                100% 0,
+                100% calc(100% - var(--curve-size)),
+                calc(100% - var(--curve-size)) 100%,
+                0 100%
+            );
+            transition: color 250ms;
+        }
+
+        .btn::after,
+        .btn::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+        }
+
+        .btn::before {
+            background: var(--border-color);
+            background-size: 300% 300%;
+            animation: move-bg7234 5s ease infinite;
+            z-index: -2;
+        }
+
+        @keyframes move-bg7234 {
+            0% { background-position: 31% 0%; }
+            50% { background-position: 70% 100%; }
+            100% { background-position: 31% 0%; }
+        }
+
+        .btn::after {
+            background: var(--bg);
+            z-index: -1;
+            clip-path: polygon(
+                var(--border-width) calc(var(--curve-size) + var(--border-width) * 0.5),
+                calc(var(--curve-size) + var(--border-width) * 0.5) var(--border-width),
+                calc(100% - var(--border-width)) var(--border-width),
+                calc(100% - var(--border-width)) calc(100% - calc(var(--curve-size) + var(--border-width) * 0.5)),
+                calc(100% - calc(var(--curve-size) + var(--border-width) * 0.5)) calc(100% - var(--border-width)),
+                var(--border-width) calc(100% - var(--border-width))
+            );
+            transition: clip-path 500ms;
+        }
+
+        .btn:where(:hover, :focus)::after {
+            clip-path: polygon(
+                calc(100% - var(--border-width)) calc(100% - calc(var(--curve-size) + var(--border-width) * 0.5)),
+                calc(100% - var(--border-width)) var(--border-width),
+                calc(100% - var(--border-width)) var(--border-width),
+                calc(100% - var(--border-width)) calc(100% - calc(var(--curve-size) + var(--border-width) * 0.5)),
+                calc(100% - calc(var(--curve-size) + var(--border-width) * 0.5)) calc(100% - var(--border-width)),
+                calc(100% - calc(var(--curve-size) + var(--border-width) * 0.5)) calc(100% - var(--border-width))
+            );
+            transition: 200ms;
+        }
+
+        .btn:where(:hover, :focus) {
+            color: #fff;
+        }
+
+        /* Loading Animation Styles */
+        .loading-popup {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.2);
+            z-index: 1001;
+            text-align: center;
+        }
+
+        .typewriter {
+            --blue: #5C86FF;
+            --blue-dark: #275EFE;
+            --key: #fff;
+            --paper: #EEF0FD;
+            --text: #D3D4EC;
+            --tool: #FBC56C;
+            --duration: 3s;
+            position: relative;
+            -webkit-animation: bounce05 var(--duration) linear infinite;
+            animation: bounce05 var(--duration) linear infinite;
+        }
+        
+        /* ... (paste all the typewriter CSS here) ... */
+
+        .loading-text {
+            margin-top: 20px;
+            font-size: 16px;
+            color: #275EFE;
+        }
+
+        /* Card UI for function boxes */
+        .comparison-type, .data-management {
+            border-radius: 20px;
+            padding: 5px;
+            box-shadow: rgba(151, 65, 252, 0.2) 0 15px 30px -5px;
+            background-image: linear-gradient(144deg,#AF40FF, #5B42F3 50%,#00DDEB);
+            margin-bottom: 25px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card__content {
+            background: rgb(5, 6, 45);
+            border-radius: 17px;
+            width: 100%;
+            min-height: 100%;
+            padding: 15px;
+            color: white;
+            box-sizing: border-box;
+            margin: 0;
+        }
+
+        /* Update text colors for better visibility */
+        .card__content h3 {
+            color: #fff;
+            margin-top: 0;
+            font-size: 24px;
+            margin-bottom: 15px;
+        }
+
+        .card__content label {
+            color: #fff;
+            font-size: 16px;
+            margin-bottom: 8px;
+        }
+
+        .card__content input[type="text"] {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+
+        .card__content input[type="text"]::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .input-group {
+            margin: 15px 0;
+        }
+
+        .blood-relation {
+            background-color: rgba(144, 238, 144, 0.3); /* Light green with transparency */
+        }
+        .no-blood-relation {
+            background-color: rgba(255, 182, 193, 0.3); /* Light red with transparency */
+        }
+
+        .form-group {
+            margin: 15px 0;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            margin-top: 5px;
+        }
+
+        .preview-content {
+            margin: 20px 0;
+        }
+
+        .preview-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+            padding-bottom: 100px; /* Increased padding to ensure content isn't obscured */
+        }
+
+        .preview-content .comparison-table {
+            margin: 20px 0;
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .preview-content .comparison-table th,
+        .preview-content .comparison-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+
+        .preview-content .comparison-table .marker-name {
+            text-align: left;
+            font-weight: bold;
+        }
+
+        .button-container button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+
+        .logo-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 0 20px;
+        }
+
+        .logo {
+            height: 80px;
+            object-fit: contain;
+        }
+
+        .report-title {
+            text-align: center;
+            font-size: 24px;
+            margin: 20px 0;
+        }
+
+        .header-cell {
+            background-color: #E6E6FA;
+            text-align: center;
+            padding: 10px;
+            font-weight: bold;
+            border: 1px solid black;
+        }
+
+        .header-cell.blue-header {
+            background-color: #B8CCE4;  /* Light blue background */
+            color: #38761D;  /* Green text */
+        }
+
+        .header-cell.sample-header-1 {
+            background-color: #E6B8B7;  /* Light pink/rose background */
+            color: #38761D;  /* Green text */
+        }
+
+        .header-cell.sample-header-2 {
+            background-color: #F2DCDB;  /* Lighter pink/rose background */
+            color: #38761D;  /* Green text */
+        }
+
+        .sample-value-1 {
+            background-color: #E6B8B7;  /* Light pink/rose background */
+        }
+
+        .sample-value-2 {
+            background-color: #F2DCDB;  /* Lighter pink/rose background */
+        }
+
+        .marker-name {
+            background-color: #E6E6FA;  /* Light purple background */
+        }
+
+        .marker-blue {
+            color: blue;
+        }
+
+        .marker-green {
+            color: green;
+        }
+
+        .marker-black {
+            color: black;
+        }
+
+        .marker-red {
+            color: red;
+        }
+
+        .marker-purple {
+            color: purple;
+        }
+
+        .conclusion {
+            margin-top: 20px;
+            margin-bottom: 20px;  /* Add bottom margin */
+            font-size: 18px;
+        }
+
+        .conclusion-label {
+            font-weight: bold;
+        }
+
+        .conclusion-highlight {
+            color: blue;
+            text-decoration: underline;
+            font-weight: bold;
+        }
+
+        .preview-content .comparison-table {
+            margin: 20px 0;
+            width: 100%;
+            border-collapse: collapse;
+            border: 1px solid black;
+        }
+
+        .preview-content .comparison-table th,
+        .preview-content .comparison-table td {
+            border: 1px solid black;
+            padding: 8px;
+            text-align: center;
+        }
+
+        .preview-popup-container {
+            display: flex;
+            flex-direction: column;
+            height: 90vh;
+            max-height: 90vh;
+        }
+
+        .preview-header {
+            padding: 15px;
+            border-bottom: 1px solid #ccc;
+            flex-shrink: 0;  /* Prevent header from shrinking */
+        }
+
+        .preview-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+            margin-bottom: 10px;
+        }
+
+        .fixed-button-container {
+            flex-shrink: 0;  /* Prevent container from shrinking */
+            background: white;
+            padding: 15px;
+            border-top: 1px solid #ccc;
+            text-align: center;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+        }
+
+        .fixed-button-container button {
+            margin: 0 10px;
+            min-width: 120px;
+        }
+
+        .popup {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 0;  /* Remove padding */
+            border: 1px solid #ccc;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+            max-width: 90%;
+            max-height: 90vh;
+            overflow: hidden;  /* Hide overflow */
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <div style="padding: 20px;">
+        <!-- Title section with logo -->
+        <div style="display: flex; align-items: center; margin-bottom: 20px;">
+            <img src="../assets/logo.png" alt="Logo" style="height: 40px; margin-right: 20px;">
+            <h1 style="margin: 0;">Marker Comparison Tool</h1>
+        </div>
+
+        <!-- Database buttons -->
+        <div style="margin-bottom: 30px;">
+            <div class="data-management">
+                <div class="card__content">
+                    <h3>Data Management</h3>
+                    <button onclick="openFolderDialog()" class="btn">Upload Data</button>
+                    <button onclick="viewDatabase()" class="btn">View Database</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main container with comparison options -->
+        <div class="main-container">
+            <div class="input-section">
+                <div class="comparison-type">
+                    <div class="card__content">
+                        <h3>Family Comparison</h3>
+                        <div class="input-group">
+                            <label for="familyCode">Enter 5-character code:</label>
+                            <input type="text" id="familyCode" maxlength="5">
+                            <button onclick="(async () => await compareSameFamily())()" class="btn">Compare</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="comparison-type">
+                    <div class="card__content">
+                        <h3>Same Day Comparison</h3>
+                        <div class="input-group">
+                            <label for="sampleCodeDay">Enter sample code:</label>
+                            <input type="text" id="sampleCodeDay">
+                            <button onclick="(async () => await compareSameDay())()" class="btn">Compare</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="comparison-type">
+                    <div class="card__content">
+                        <h3>All Database Comparison</h3>
+                        <div class="input-group">
+                            <label for="sampleCodeAll">Enter sample code:</label>
+                            <input type="text" id="sampleCodeAll">
+                            <button onclick="(async () => await compareAllDatabase())()" class="btn">Compare</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="comparison-type">
+                    <div class="card__content">
+                        <h3>Two Sample Comparison</h3>
+                        <div class="input-group">
+                            <label for="sample1">First sample code:</label>
+                            <input type="text" id="sample1">
+                            <label for="sample2">Second sample code:</label>
+                            <input type="text" id="sample2">
+                            <button onclick="(async () => await compareTwoSamples())()" class="btn">Compare</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="results-section" id="results">
+                <!-- Results will be displayed here -->
+            </div>
+        </div>
+    </div>
+
+    <div id="popup-backdrop" class="popup-backdrop"></div>
+    <div id="details-popup" class="popup"></div>
+    <div id="print-popup" class="popup"></div>
+
+    <!-- Loading Popup -->
+    <div id="loading-popup" class="loading-popup">
+        <div class="typewriter">
+            <div class="slide">
+                <i></i>
+            </div>
+            <div class="paper"></div>
+            <div class="keyboard"></div>
+        </div>
+        <div class="loading-text">Uploading data, please wait...</div>
+    </div>
+
+    <script>
+        let comparison; // Declare global variable for MarkerComparison instance
+        const MarkerComparison = require('./comparison');
+        const { DataHandler } = require('./data');
+        const { DocGenerator } = require('./docGenerator');
+        const path = require('path');
+
+        async function initializeComparison() {
+            try {
+                const dataHandler = new DataHandler();
+                comparison = new MarkerComparison(dataHandler); // Assign to global variable
+                const connected = await dataHandler.checkSpreadsheet();
+                if (!connected) {
+                    throw new Error('Could not connect to spreadsheet');
+                }
+                console.log('Marker comparison initialized successfully');
+                return true;
+            } catch (error) {
+                console.error('Error initializing comparison:', error);
+                return false;
+            }
+        }
+
+        // Initialize on page load
+        window.addEventListener('DOMContentLoaded', async () => {
+            const initialized = await initializeComparison();
+            if (!initialized) {
+                alert('Error initializing comparison system');
+            }
+        });
+
+        function showDetails(index) {
+            const result = window.lastResults[index];
+            const popup = document.getElementById('details-popup');
+            const backdrop = document.getElementById('popup-backdrop');
+
+            let content = `
+                <span class="close-button" onclick="closePopup('details-popup')">&times;</span>
+                <h2>Detailed Comparison</h2>
+                <table class="comparison-table">
+                    <tr>
+                        <th rowspan="2">Marker</th>
+                        <th colspan="2">${result.sample1.name}<br>${result.sample1.code}</th>
+                        <th colspan="2">${result.sample2.name}<br>${result.sample2.code}</th>
+                    </tr>
+                    <tr>
+                        <th>Allele 1</th>
+                        <th>Allele 2</th>
+                        <th>Allele 1</th>
+                        <th>Allele 2</th>
+                    </tr>
+            `;
+
+            // Use the static MARKER_ORDER
+            MarkerComparison.MARKER_ORDER.forEach(marker => {
+                const values1 = result.sample1.markers[marker] || ['', ''];
+                const values2 = result.sample2.markers[marker] || ['', ''];
+                const matchingValues1 = values1.map(v1 => values2.includes(v1));
+                const matchingValues2 = values2.map(v2 => values1.includes(v2));
+
+                content += `
+                    <tr>
+                        <td class="marker-name">${marker}</td>
+                        <td class="${matchingValues1[0] ? 'highlight' : ''}">${values1[0]}</td>
+                        <td class="${matchingValues1[1] ? 'highlight' : ''}">${values1[1]}</td>
+                        <td class="${matchingValues2[0] ? 'highlight' : ''}">${values2[0]}</td>
+                        <td class="${matchingValues2[1] ? 'highlight' : ''}">${values2[1]}</td>
+                    </tr>
+                `;
+            });
+
+            content += `
+                </table>
+                <div class="summary">
+                    <p>Total Markers: ${MarkerComparison.MARKER_ORDER.length}</p>
+                    <p>Matching: ${result.matches.length}</p>
+                    <p>Mismatching: ${result.mismatches.length}</p>
+                    <p>Conclusion: ${result.conclusion}</p>
+                </div>
+                <div class="button-container">
+                    <button onclick="closePopup('details-popup')" class="btn">Close</button>
+                </div>
+            `;
+
+            popup.innerHTML = content;
+            popup.style.display = 'block';
+            backdrop.style.display = 'block';
+        }
+
+        async function compareSameFamily() {
+            try {
+                if (!comparison) {
+                    throw new Error('Comparison not initialized');
+                }
+                const inputField = document.getElementById('familyCode');
+                const code = inputField.value;
+                if (!code || code.length !== 5) {
+                    alert('Please enter a valid 5-character code');
+                    return;
+                }
+                const results = await comparison.compareFamily(code);
+                displayResults(results);
+                inputField.value = '';
+            } catch (error) {
+                console.error('Error in compareSameFamily:', error);
+                alert('Error comparing family: ' + error.message);
+            }
+        }
+
+        async function compareSameDay() {
+            try {
+                if (!comparison) {
+                    throw new Error('Comparison not initialized');
+                }
+                const inputField = document.getElementById('sampleCodeDay');
+                const code = inputField.value;
+                if (!code) {
+                    alert('Please enter a valid sample code');
+                    return;
+                }
+                const results = await comparison.compareSameDay(code);
+                displayResults(results);
+                inputField.value = '';
+            } catch (error) {
+                console.error('Error in compareSameDay:', error);
+                alert('Error comparing same day: ' + error.message);
+            }
+        }
+
+        async function compareAllDatabase() {
+            try {
+                if (!comparison) {
+                    throw new Error('Comparison not initialized');
+                }
+                const inputField = document.getElementById('sampleCodeAll');
+                const code = inputField.value;
+                if (!code) {
+                    alert('Please enter a valid sample code');
+                    return;
+                }
+                const results = await comparison.compareAllDatabase(code);
+                displayResults(results);
+                inputField.value = '';
+            } catch (error) {
+                console.error('Error in compareAllDatabase:', error);
+                alert('Error comparing with database: ' + error.message);
+            }
+        }
+
+        async function compareTwoSamples() {
+            try {
+                if (!comparison) {
+                    throw new Error('Comparison not initialized');
+                }
+                const inputField1 = document.getElementById('sample1');
+                const inputField2 = document.getElementById('sample2');
+                const sample1 = inputField1.value;
+                const sample2 = inputField2.value;
+                if (!sample1 || !sample2) {
+                    alert('Please enter both sample codes');
+                    return;
+                }
+                const results = await comparison.compareSamples(sample1, sample2);
+                displayResults(results);
+                inputField1.value = '';
+                inputField2.value = '';
+            } catch (error) {
+                console.error('Error in compareTwoSamples:', error);
+                alert('Error comparing samples: ' + error.message);
+            }
+        }
+
+        function showDownloadPreview(index) {
+            window.currentPreviewIndex = index;
+            const result = window.lastResults[index];
+            const popup = document.getElementById('print-popup');
+            const backdrop = document.getElementById('popup-backdrop');
+
+            // Function to get marker color class
+            const getMarkerColorClass = (index) => {
+                if (index < 5) return 'marker-blue';
+                if (index < 11) return 'marker-green';
+                if (index < 15) return 'marker-black';
+                if (index < 20) return 'marker-red';
+                return 'marker-purple';
+            };
+
+            // Check if there are mismatches excluding Yindel
+            const hasMismatchesExcludingYindel = result.mismatches.some(marker => marker !== 'Yindel');
+
+            popup.innerHTML = `
+                <div class="preview-popup-container">
+                    <div class="preview-header">
+                        <span class="close-button" onclick="closePopup('print-popup')">&times;</span>
+                        <h2>Download Report</h2>
+                        <div class="form-group" style="margin-bottom: 20px;">
+                            <label for="formType">Select Form:</label>
+                            <select id="formType" class="form-control">
+                                <option value="phap-ly">Pháp lý</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="preview-content">
+                        <div class="logo-container">
+                            <img src="../assets/Loci-logo.png" alt="Loci Logo" class="logo">
+                            <img src="../assets/adnchacon-logo.png" alt="ADN Chacon Logo" class="logo">
+                            <img src="../assets/phaply-logo.png" alt="Phap Ly Logo" class="logo">
+                        </div>
+                        <h2 class="report-title">KẾT QUẢ XÉT NGHIỆM ADN</h2>
+                        <table class="comparison-table">
+                            <tr>
+                                <th class="header-cell blue-header">HỌ TÊN<br>MÃ CODE</th>
+                                <th colspan="2" class="header-cell sample-header-1">${result.sample1.name}<br>${result.sample1.code}</th>
+                                <th colspan="2" class="header-cell sample-header-2">${result.sample2.name}<br>${result.sample2.code}</th>
+                            </tr>
+                            ${MarkerComparison.MARKER_ORDER.map((marker, index) => {
+                                const values1 = result.sample1.markers[marker] || ['', ''];
+                                const values2 = result.sample2.markers[marker] || ['', ''];
+                                const colorClass = getMarkerColorClass(index);
+                                return `
+                                    <tr>
+                                        <td class="marker-name ${colorClass}">${marker}</td>
+                                        <td class="sample-value-1 ${colorClass}">${values1[0]}</td>
+                                        <td class="sample-value-1 ${colorClass}">${values1[1]}</td>
+                                        <td class="sample-value-2 ${colorClass}">${values2[0]}</td>
+                                        <td class="sample-value-2 ${colorClass}">${values2[1]}</td>
+                                    </tr>
+                                `;
+                            }).join('')}
+                        </table>
+                        <div class="conclusion">
+                            <span class="conclusion-label">Kết luận:</span> <span class="conclusion-highlight">${result.conclusion === "Blood Relation" ? "CÓ" : "KHÔNG"}</span> quan hệ huyết thống Cha/Mẹ - Con${
+                                !hasMismatchesExcludingYindel && result.conclusion === "Blood Relation" 
+                                ? ", với tần suất 99.99999999999999%" 
+                                : ""
+                            }.
+                        </div>
+                    </div>
+                    <div class="fixed-button-container">
+                        <button onclick="downloadForm()" class="btn">Download</button>
+                        <button onclick="closePopup('print-popup')" class="btn">Cancel</button>
+                    </div>
+                </div>
+            `;
+
+            popup.style.display = 'block';
+            backdrop.style.display = 'block';
+        }
+
+        function downloadForm() {
+            const result = window.lastResults[window.currentPreviewIndex];
+            if (!result) {
+                console.error('No result found for download');
+                alert('Error: Could not find result data for download');
+                return;
+            }
+            // Show loading indicator or disable button while downloading
+            const downloadBtn = document.querySelector('#print-popup .button-container button');
+            if (downloadBtn) {
+                downloadBtn.disabled = true;
+                downloadBtn.textContent = 'Downloading...';
+            }
+
+            DocGenerator.downloadDocument(result)
+                .then(() => {
+                    closePopup('print-popup');
+                })
+                .catch(error => {
+                    console.error('Error downloading document:', error);
+                    alert('Error downloading document: ' + error.message);
+                })
+                .finally(() => {
+                    if (downloadBtn) {
+                        downloadBtn.disabled = false;
+                        downloadBtn.textContent = 'Download';
+                    }
+                });
+        }
+
+        function displayResults(results) {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '';
+
+            if (!results || results.length === 0) {
+                resultsDiv.innerHTML = '<p>No results found.</p>';
+                return;
+            }
+
+            // Store results for later use
+            window.lastResults = results;
+
+            results.forEach((result, index) => {
+                const resultDiv = document.createElement('div');
+                resultDiv.className = 'result-container';
+                resultDiv.classList.add(
+                    result.conclusion === "Blood Relation" ? 'blood-relation' : 'no-blood-relation'
+                );
+
+                const summary = document.createElement('div');
+                summary.className = 'summary';
+                summary.innerHTML = `
+                    <h3>Comparison Result</h3>
+                    <p>Sample 1: ${result.sample1.code} - ${result.sample1.name}</p>
+                    <p>Sample 2: ${result.sample2.code} - ${result.sample2.name}</p>
+                    <p>Matches: ${result.matches.length}</p>
+                    <p>Mismatches: ${result.mismatches.length}</p>
+                    <p>Conclusion: ${result.conclusion}</p>
+                `;
+
+                const buttonContainer = document.createElement('div');
+                buttonContainer.className = 'result-buttons';
+
+                const detailsButton = document.createElement('button');
+                detailsButton.textContent = 'See Details';
+                detailsButton.className = 'btn';
+                detailsButton.onclick = () => showDetails(index);
+
+                const downloadButton = document.createElement('button');
+                downloadButton.textContent = 'Download';
+                downloadButton.className = 'btn';
+                downloadButton.onclick = () => showDownloadPreview(index);
+
+                buttonContainer.appendChild(detailsButton);
+                buttonContainer.appendChild(downloadButton);
+
+                resultDiv.appendChild(summary);
+                resultDiv.appendChild(buttonContainer);
+                resultsDiv.appendChild(resultDiv);
+            });
+        }
+
+        function closePopup(popupId) {
+            document.getElementById(popupId).style.display = 'none';
+            document.getElementById('popup-backdrop').style.display = 'none';
+        }
+    </script>
+</body>
+</html> 
