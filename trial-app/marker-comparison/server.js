@@ -15,9 +15,10 @@ const upload = multer({
     }
 });
 
-// Serve static files from public directory
-app.use(express.static('public'));
-// Serve files from trial-app/marker-comparison directory
+// Serve static files from public directory first (for assets)
+app.use(express.static(path.join(__dirname, '..', '..', 'public')));
+
+// Then serve files from marker-comparison directory
 app.use(express.static(path.join(__dirname)));
 
 // Error handling middleware

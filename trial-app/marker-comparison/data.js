@@ -6,23 +6,15 @@ const MarkerComparison = require('./comparison');
 class DataHandler {
     constructor() {
         try {
-            // Look for credentials in environment variables first
-            if (process.env.GOOGLE_SHEETS_CREDENTIALS) {
-                this.auth = new google.auth.GoogleAuth({
-                    credentials: JSON.parse(process.env.GOOGLE_SHEETS_CREDENTIALS),
-                    scopes: ['https://www.googleapis.com/auth/spreadsheets'],
-                });
-            } else {
-                // Fallback to file-based credentials
-                const credentialsPath = path.join(__dirname, 'credentials', 'credentials.json');
-                if (!fs.existsSync(credentialsPath)) {
-                    throw new Error('Google Sheets credentials not found in environment or file');
-                }
-                this.auth = new google.auth.GoogleAuth({
-                    keyFile: credentialsPath,
-                    scopes: ['https://www.googleapis.com/auth/spreadsheets'],
-                });
+            const credentialsPath = path.join(__dirname, 'credentials', 'credentials.json');
+            if (!fs.existsSync(credentialsPath)) {
+                throw new Error('Google Sheets credentials file not found at: ' + credentialsPath);
             }
+
+            this.auth = new google.auth.GoogleAuth({
+                keyFile: credentialsPath,
+                scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+            });
             this.sheetsApi = google.sheets({ version: 'v4', auth: this.auth });
             this.spreadsheetId = '1WEpy6eVaUoNUYqJLKfe715eW1U_RWgDkZenomBtdCrY';
             
